@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Project {
+  id                 String            @id @default(cuid())
+  name               String
+  description        String?
+  status             String            @default("active")
+  startDate          DateTime?
+  dueDate            DateTime?
+  tags               String            @default("")
+  sortOrder          Int               @default(0)
+  archived           Boolean           @default(false)
+  workflowTemplateId String?
+  projectSetId       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tasks              Task[]
+  workflowTemplate   WorkflowTemplate? @relation(fields: [workflowTemplateId], references: [id])
+  projectSet         ProjectSet?       @relation(fields: [projectSetId], references: [id], onDelete: SetNull)
+
+  @@index([projectSetId])
+}
+
+model ProjectSet {
+  id        String    @id @default(cuid())
+  name      String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Task {
+  id               String           @id @default(cuid())
+  title            String
+  description      String?
+  sourceType       String           @default("temporary")
+  priority         String           @default("medium")
+  statusKey        String           @default("todo")
+  dueDate          DateTime?
+  startTime        DateTime?
+  completedAt      DateTime?
+  sortOrder        Int              @default(0)
+  tags             String           @default("")
+  projectId        String?
+  parentId         String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent           Task?            @relation("TaskChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Task[]           @relation("TaskChildren")
+  recurrenceRule   RecurrenceRule?
+  assignees        TaskPersonnel[]
+
+  @@index([projectId])
+  @@index([parentId])
+  @@index([sourceType])
+  @@index([statusKey])
+  @@index([dueDate])
+}
+
+model Personnel {
+  id                String          @id @default(cuid())
+  name              String
+  certificateNumber String          @unique
+  deletedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tasks             TaskPersonnel[]
+}
+
+model TaskPersonnel {
+  taskId      String
+  personnelId String
+  createdAt   DateTime  @default(now())
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  personnel   Personnel @relation(fields: [personnelId], references: [id])
+
+  @@id([taskId, personnelId])
+}
+
+model WorkflowTemplate {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  projects    Project[]
+  states      WorkflowState[]
+}
+
+model WorkflowState {
+  id                 String           @id @default(cuid())
+  workflowTemplateId String
+  key                String
+  label              String
+  color              String
+  sortOrder          Int
+  isDefault          Boolean          @default(false)
+  isCompleted        Boolean          @default(false)
+  workflowTemplate   WorkflowTemplate @relation(fields: [workflowTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowTemplateId, key])
+}
+
+model RecurrenceRule {
+  id          String    @id @default(cuid())
+  taskId      String    @unique
+  frequency   String
+  interval    Int       @default(1)
+  nextRunAt   DateTime
+  endsAt      DateTime?
+  paused      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
