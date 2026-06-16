@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/.playwright-cli/
+/output/
+/.superpowers/
 
 # next.js
 /.next/
@@ -19,6 +22,9 @@
 
 # production
 /build
+
+# local app data
+/data
 
 # misc
 .DS_Store
@@ -39,3 +45,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
